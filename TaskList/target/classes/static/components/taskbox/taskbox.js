@@ -68,18 +68,21 @@ class TaskBox extends HTMLElement {
      * @param {Function} callback 
      */
     newtaskCallback(callback) {
-
+      
         const addButton = this.#shadow.querySelector("button");
         addButton.addEventListener('click', (event) => {
 
+            //Get the inputted data
             const select = this.#shadow.querySelector("select");
             const selectedOption = select.options[select.selectedIndex].textContent;
-            const title = this.#shadow.querySelector("input").value;
-            console.log(`Option: ${selectedOption} Title: ${title}`);
-            const newEvent = {"title": title, "status": selectedOption};
+            const title = this.#shadow.querySelector("input");
+            const newEvent = {"title": title.value, "status": selectedOption};
+            //Clear selections in view
+            title.value = "";
+            select.selectedIndex = 0;
+            //Send new event data
             callback(newEvent);
-        });
-        
+        });     
     }
 
     /**

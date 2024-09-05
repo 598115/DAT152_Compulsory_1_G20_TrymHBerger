@@ -66,30 +66,31 @@ class TaskList extends HTMLElement {
      * @param {function} callback
      */
     changestatusCallback(callback) {
-    setTimeout(() => {
-    const selecters = this.#shadow.querySelectorAll("tr:not(thead tr)");
-    selecters.forEach(selector => {
-        selector.addEventListener('change', (event) => { 
+      //Listen change in any "SELECT" element within this shadow doc
+      this.#shadow.addEventListener('change', (event) => {
+        if (event.target.tagName === 'SELECT') {
+            //Find which of the tasks triggered event
             const selectElement = event.target;
+            //Find which option selected
             const selectedOption = selectElement.options[selectElement.selectedIndex];
+            //Get information for confirm window and callback
             const container = selectElement.closest("tr");          
             const id = container.id;
             const optionName = container.querySelector("td").textContent;
             const optionStatus = selectedOption.textContent;
+            //Confirm window
+            const userResponse = confirm(`Set '${optionName}' to ${optionStatus}?`)
 
-            const userRespone = confirm(`Set '${optionName}' to ${optionStatus}?`)
-
-            if(userRespone) { //Clicked OK
+            if(userResponse) { //Clicked OK
+                selectElement.value ="0";
                 callback(id, optionStatus);
             }
-            else {
+            else { //Cancelled
                 selectElement.value ="0";
                 return
-            }             
-        })
-      });
-    }, 1000)                      
-    
+            }
+        }                 
+       });                     
   }
 
     /**
@@ -98,29 +99,26 @@ class TaskList extends HTMLElement {
      * @param {function} callback
      */
     deletetaskCallback(callback) {
-       
-        setTimeout(() => {
-            const rows = this.#shadow.querySelectorAll("tr:not(thead tr)");
-            console.log(rows);  
-            rows.forEach(row => {
-                const button = row.querySelector("button");
-                button.addEventListener('click', (event) => { 
+            // Listen for click on any "BUTTON" element within this shadow doc
+            this.#shadow.addEventListener('click', (event) => {
+                if (event.target.tagName === "BUTTON") {
+                    //Find which tasks button was clicked 
                     const buttonElement = event.target;
+                    //Find id and name of task for confirm window and callback
                     const container = buttonElement.closest("tr");          
                     const id = container.id;
                     const optionName = container.querySelector("td").textContent;
-        
-                    const userRespone = confirm(`Delete task '${optionName}?`)
+                    //Confirm window
+                    const userRespone = confirm(`Delete task '${optionName}?`);
         
                     if(userRespone) { //Clicked OK
                         callback(id);
                     }
-                    else {
+                    else { //Cancelled
                         return
-                    }             
-                })
-              });
-            }, 1000)                      
+                    }
+                }
+            });                    
     }
 
     /**
@@ -128,14 +126,19 @@ class TaskList extends HTMLElement {
      * @public
      * @param {Object} task - Object representing a task
      */
-    showTask(task) {                                            
-       
-         //Check if list elemnt present
-         let list = this.#shadow.querySelector("table");
-         if(list === null) {
+    showTask(task) {
+        
+        //Check if task already present
+        const present = this.#shadow.querySelector(`tr[id="${task.id}"]`);
+        if(present) {return};
+
+         //Check if table elemnt present
+         let table = this.#shadow.querySelector("table");
+         if(table === null) {
             //Add new list element if not present
-            this.#shadow.querySelector("div").appendChild(this.tasktable);
-            list = this.#shadow.querySelector("table");         
+            const newTable = tasktable.content.cloneNode(true);
+            this.#shadow.querySelector("div").appendChild(newTable);
+            table = this.#shadow.querySelector("table");         
          }
          //create row element
          const newRow = this.taskrow.cloneNode(true);
@@ -145,8 +148,7 @@ class TaskList extends HTMLElement {
          const rowinfo = newRow.querySelectorAll("td");
          rowinfo[0].textContent = task.title;
          rowinfo[1].textContent = task.status;
-         list.insertBefore(newRow, list.firstChild)
-         this.getNumtasks();  
+         table.insertBefore(newRow, table.firstChild)  
     }
 
     /**
@@ -170,17 +172,19 @@ class TaskList extends HTMLElement {
         const row = this.#shadow.querySelector(`tr[id='${id}']`);
        if(row) { //Remove the row if found
         row.remove();
+        console.log("Task removed from view");
        }
        else {
         return;
        }
+       //Remove table element if no tasks present
        const list = this.#shadow.querySelector("select");
        if(list === null) {
         const table = this.#shadow.querySelector("table");
         table.remove();
         console.log("Removed table");
        }
-       this.getNumtasks();
+
     }
 
     /**
@@ -190,7 +194,7 @@ class TaskList extends HTMLElement {
     getNumtasks() {   
     const rows = this.#shadow.querySelectorAll("tr:not(thead tr)");
     const number = rows.length;
-    return `Found ${number} tasks.`;   
+    return number;   
     }
 }
 customElements.define('task-list', TaskList);
