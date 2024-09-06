@@ -20,14 +20,17 @@ class TaskView extends HTMLElement {
         #shadow
         #taskBox
         #taskList
+        #baseurl
         constructor() {                                                              
-            super();          
+            super();
+            //Setup shadow doc DOM         
             this.#shadow = this.attachShadow({mode:"closed"});
             this.template = template.content.cloneNode(true);
             this.#shadow.append(this.template);
             this.#taskBox = this.#shadow.querySelector("task-box");
             this.#taskList = this.#shadow.querySelector("task-list");
-
+            //Get data service url
+            this.#baseurl = document.querySelector('task-view').dataset.serviceurl;
             //Initialize view and listeners
             this.#shadow.querySelector("button").addEventListener('click', (event) => {
                 this.#taskBox.show();
@@ -46,7 +49,7 @@ class TaskView extends HTMLElement {
     async fetchAvailableStatuses() { 
         
          try {
-            const response = await fetch("api/allstatuses");
+            const response = await fetch(`${this.#baseurl}/allstatuses`);
             const data = await response.json();
             const dataArray = data.allstatuses;
             //If true server response, update view
@@ -69,7 +72,7 @@ class TaskView extends HTMLElement {
      */
     async fetchTasks() {
         try {
-            const response = await fetch("api/tasklist");
+            const response = await fetch(`${this.#baseurl}/tasklist`);
             const data = await response.json();
             const taskArray = data.tasks;
                //If no tasks found in database
@@ -109,7 +112,7 @@ class TaskView extends HTMLElement {
                     'headers': {'Content-Type': 'application/json; charset=utf-8'},
                     'body': JSON.stringify(newEvent)
                 }
-                const response = await fetch("api/task", config);
+                const response = await fetch(`${this.#baseurl}/task`, config);
                 const data = await response.json();
                  //If true server response, update view with new task
                 if(data.responseStatus) {
@@ -126,7 +129,7 @@ class TaskView extends HTMLElement {
      */
    async getTask(id) { //Not in use
         try {
-           const response = await fetch(`api/task/${id}`);
+           const response = await fetch(`${this.#baseurl}/task/${id}`);
            const data = await response.json();
            return data.task;
         }
@@ -150,7 +153,7 @@ class TaskView extends HTMLElement {
                 'headers': {'Content-Type': 'application/json; charset=utf-8'},
                 'body': JSON.stringify({"status": status})
             }
-           const response = await fetch(`api/task/${id}`, config);
+           const response = await fetch(`${this.#baseurl}/task/${id}`, config);
            const data = await response.json();
            //if server response ok update the view
            if(data.responseStatus) {
@@ -173,7 +176,7 @@ class TaskView extends HTMLElement {
     this.#taskList.deletetaskCallback(
        async (id) => {
         try {
-        const response = await fetch(`api/task/${id}`, {"method": 'DELETE'});
+        const response = await fetch(`${this.#baseurl}/task/${id}`, {"method": 'DELETE'});
         const data = await response.json();
          //If response from server ok, update view 
         if(data.responseStatus) {  
