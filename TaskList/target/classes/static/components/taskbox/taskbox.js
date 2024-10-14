@@ -1,20 +1,3 @@
-const template = document.createElement("template");
-template.innerHTML = `
-<link rel="stylesheet" type="text/css" href="${import.meta.url.match(/.*\//)[0]}/taskbox.css"/>
- <dialog>
-   <!-- Modal content -->
-    <span>&times;</span>
-    <div>
-        <div>Title:</div>
-        <div>
-            <input type="text" size="25" maxlength="80"
-                placeholder="Task title" autofocus/>
-       </div>
-       <div>Status:</div><div><select></select></div>
-    </div>
-    <p><button type="submit">Add task</button></p>
- </dialog>
-`;
 
 /**
   * TaskBox
@@ -22,11 +5,12 @@ template.innerHTML = `
   */
 class TaskBox extends HTMLElement {
     #shadow
+    #template
     constructor() {                                                              
         super();          
         this.#shadow = this.attachShadow({mode:"closed"});
-        this.template = template.content.cloneNode(true);
-        this.#shadow.append(this.template);
+        this.#template = this.#createTemplate().content.cloneNode(true);
+        this.#shadow.append(this.#template);
 
         const closeButton = this.#shadow.querySelector("span"); //Close box "X" listener
         closeButton.addEventListener('click', () => {
@@ -34,7 +18,7 @@ class TaskBox extends HTMLElement {
         });
     }
     
-    /**
+    /**API
      * @public
      * Opens (shows) the modal box in the browser window.
      */
@@ -42,7 +26,7 @@ class TaskBox extends HTMLElement {
       this.#shadow.querySelector("dialog").showModal();
     }
     
-    /**
+    /**API
      * Sets the list of possible task statuses.
      * @public
      * @param {Array} list 
@@ -62,7 +46,7 @@ class TaskBox extends HTMLElement {
         }
     }
 
-    /**
+    /**API
      * Adds a callback to run at click on the Add task button.
      * @public
      * @param {Function} callback 
@@ -80,16 +64,43 @@ class TaskBox extends HTMLElement {
             //Clear selections in view
             title.value = "";
             select.selectedIndex = 0;
-            //Send new event data
+            //Send new event data and close box
+            this.close()
             callback(newEvent);
         });     
     }
 
-    /**
+    /**API
+     * @public
      * Removes the modal box from the view.
      */
     close() {
         this.#shadow.querySelector("dialog").close();
+    }
+
+    /**
+     * @Private
+     * @returns html template for module
+     */
+    #createTemplate() {
+        const template = document.createElement("template");
+        template.innerHTML = `
+        <link rel="stylesheet" type="text/css" href="${import.meta.url.match(/.*\//)[0]}/taskbox.css"/>
+        <dialog>
+        <!-- Modal content -->
+            <span>&times;</span>
+            <div>
+                <div>Title:</div>
+            <div>
+                <input type="text" size="25" maxlength="80"
+                    placeholder="Task title" autofocus/>
+            </div>
+            <div>Status:</div><div><select></select></div>
+            </div>
+        <p><button type="submit">Add task</button></p>
+        </dialog>
+        `;
+    return template;
     }
     
 }

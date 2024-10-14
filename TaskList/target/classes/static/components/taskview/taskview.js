@@ -1,16 +1,5 @@
-const template = document.createElement("template");
-template.innerHTML = `
-    <link rel="stylesheet" type="text/css" href="${import.meta.url.match(/.*\//)[0]}/taskview.css"/>
-         <h1>Tasks</h1>
-         <div id="message"><p>Waiting for server data.</p></div>
-         <div id="newtask">
-               <button type="button" disabled>New task</button>
-         </div>
-         <!-- The task list -->
-        <task-list></task-list>
-        <!-- The Modal -->
-        <task-box></task-box>
-    `;
+import "../taskbox/taskbox.js";
+import "../tasklist/tasklist.js";
     
 /**
   * TaskView
@@ -21,12 +10,13 @@ class TaskView extends HTMLElement {
         #taskBox
         #taskList
         #baseurl
+        #template
         constructor() {                                                              
             super();
             //Setup shadow doc DOM         
             this.#shadow = this.attachShadow({mode:"closed"});
-            this.template = template.content.cloneNode(true);
-            this.#shadow.append(this.template);
+            this.#template = this.#createTemplate().content.cloneNode(true);
+            this.#shadow.append(this.#template);
             this.#taskBox = this.#shadow.querySelector("task-box");
             this.#taskList = this.#shadow.querySelector("task-list");
             //Get data service url
@@ -35,18 +25,18 @@ class TaskView extends HTMLElement {
             this.#shadow.querySelector("button").addEventListener('click', (event) => {
                 this.#taskBox.show();
             });
-            this.fetchAvailableStatuses();    
-            this.postNewTask();
-            this.fetchTasks();
-            this.updateTaskStatus();
-            this.deleteTask();
+            this.#fetchAvailableStatuses();    
+            this.#postNewTask();
+            this.#fetchTasks();
+            this.#updateTaskStatus();
+            this.#deleteTask();
         }
 
     /**
-     * @public
+     * @private
      * Uses Ajax to retrieve all statuses in database and add them to view with tasklist and taskbox API
      */
-    async fetchAvailableStatuses() { 
+    async #fetchAvailableStatuses() { 
         
          try {
             const response = await fetch(`${this.#baseurl}/allstatuses`);
@@ -67,10 +57,10 @@ class TaskView extends HTMLElement {
     }
 
     /**
-     * @public
+     * @private
      * Uses Ajax to retrieve all tasks in database and add them to view with tasklist API
      */
-    async fetchTasks() {
+    async #fetchTasks() {
         try {
             const response = await fetch(`${this.#baseurl}/tasklist`);
             const data = await response.json();
@@ -90,7 +80,7 @@ class TaskView extends HTMLElement {
                     else{
                         console.error("responseStatus : false when fetching tasks");
                     }           
-                this.refreshMessageElement(); //Update count of how many tasks are now in view                
+                this.#refreshMessageElement(); //Update count of how many tasks are now in view                
                }
             this.#shadow.querySelector("button").disabled = false; //After tasks finished fetching, enable new tasks button
          }
@@ -100,9 +90,10 @@ class TaskView extends HTMLElement {
     }
 
    /**
+    * @private
     * Uses Ajax to post a new task to the database. Uses taskbox API to get new task data
     */
-   postNewTask() {
+   #postNewTask() {
 
         this.#taskBox.newtaskCallback(
        async (newEvent) => {        
@@ -117,17 +108,18 @@ class TaskView extends HTMLElement {
                  //If true server response, update view with new task
                 if(data.responseStatus) {
                     this.#taskList.showTask(data.task);
-                    this.refreshMessageElement();
+                    this.#refreshMessageElement();
                 }
       });
     }
 
     /**
+     * @private
      * Gets a single task from the database with a given id number
      * @param {number} id 
      * @returns task object
      */
-   async getTask(id) { //Not in use
+   async #getTask(id) { 
         try {
            const response = await fetch(`${this.#baseurl}/task/${id}`);
            const data = await response.json();
@@ -139,10 +131,11 @@ class TaskView extends HTMLElement {
    }
 
    /**
+    * @private
     * Updates the status of a task on the server.
     * Uses tasklist API to listen for desired change and update view.
     */
-   updateTaskStatus() {
+   #updateTaskStatus() {
          
    this.#taskList.changestatusCallback(
     async (id, status) => {
@@ -157,7 +150,7 @@ class TaskView extends HTMLElement {
            const data = await response.json();
            //if server response ok update the view
            if(data.responseStatus) {
-            const task = await this.getTask(id);
+            const task = await this.#getTask(id);
             this.#taskList.updateTask(task);
            }
         }
@@ -168,10 +161,11 @@ class TaskView extends HTMLElement {
    }
 
    /**
+    * @private
     * Uses Ajax to delete a task in database.
     * Uses tasklist API to listen for delete button click and update view
     */
-   deleteTask() {
+   #deleteTask() {
 
     this.#taskList.deletetaskCallback(
        async (id) => {
@@ -189,13 +183,14 @@ class TaskView extends HTMLElement {
         catch(e) {
            console.log(`Error when deleting task status: ${e.message}`);
         }
-        this.refreshMessageElement();
+        this.#refreshMessageElement();
     })
    }
    /**
+    * @private
     * Uses tasklist API to get number of tasks in view and then updates local message element with it
     */
-   refreshMessageElement() {
+   #refreshMessageElement() {
     const num = this.#taskList.getNumtasks();
     if(num === 0) { //No tasks in view
         const message = this.#shadow.querySelector("#message");
@@ -206,5 +201,26 @@ class TaskView extends HTMLElement {
         message.textContent = `Found ${num} tasks.`;
        }
      }
+
+     /**
+      * @private
+      * @returns html template for component
+      */
+    #createTemplate() {
+        const template = document.createElement("template");
+        template.innerHTML = `
+    <link rel="stylesheet" type="text/css" href="${import.meta.url.match(/.*\//)[0]}/taskview.css"/>
+         <h1>Tasks</h1>
+         <div id="message"><p>Waiting for server data.</p></div>
+         <div id="newtask">
+               <button type="button" disabled>New task</button>
+         </div>
+         <!-- The task list -->
+        <task-list></task-list>
+        <!-- The Modal -->
+        <task-box></task-box>
+        `;
+     return template;
+    }
 }
 customElements.define('task-view', TaskView);

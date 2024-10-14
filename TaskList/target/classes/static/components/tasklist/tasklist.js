@@ -1,28 +1,3 @@
-const template = document.createElement("template");
-template.innerHTML = `
-    <link rel="stylesheet" type="text/css" href="${import.meta.url.match(/.*\//)[0]}/tasklist.css"/>
-
-    <div id="tasklist"></div>`;          
-
-const tasktable = document.createElement("template");
-tasktable.innerHTML = `
-    <table>
-        <thead><tr><th>Task</th><th>Status</th></tr></thead>
-        <tbody></tbody>
-    </table>`;
-
-const taskrow = document.createElement("template");
-taskrow.innerHTML = `
-    <tr>
-        <td></td>
-        <td></td>
-        <td>
-            <select>
-                <option value="0" selected>&lt;Modify&gt;</option>
-            </select>
-        </td>
-        <td><button type="button">Remove</button></td>
-    </tr>`;
 
 /**
   * TaskList
@@ -30,23 +5,26 @@ taskrow.innerHTML = `
   */
 class TaskList extends HTMLElement {
     #shadow
+    #template
+    #tasktable
+    #taskrow
     constructor() {                                                              
         super();
         
         this.#shadow = this.attachShadow({mode:"closed"});
-        this.template = template.content.cloneNode(true);
-        this.tasktable = tasktable.content.cloneNode(true);
-        this.taskrow = taskrow.content.cloneNode(true);
-        this.#shadow.append(this.template);
+        this.#template = this.#createTemplate().content.cloneNode(true);
+        this.#tasktable = this.#createTasktableTemplate().content.cloneNode(true);
+        this.#taskrow = this.#createTaskrowTemplate().content.cloneNode(true);
+        this.#shadow.append(this.#template);
     }
 
-    /**
+    /**API
      * @public
      * @param {Array} list with all possible task statuses
      */
     setStatuseslist(allstatuses) {
 
-    const select = this.taskrow.querySelector("select");
+    const select = this.#taskrow.querySelector("select");
     //Iterate over statuses array
     for(let s of allstatuses) {
       //Create new option element
@@ -60,7 +38,7 @@ class TaskList extends HTMLElement {
 
   }
 
-    /**
+    /**API
      * Add callback to run on change on change of status of a task, i.e. on change in the SELECT element
      * @public
      * @param {function} callback
@@ -75,7 +53,7 @@ class TaskList extends HTMLElement {
             const selectedOption = selectElement.options[selectElement.selectedIndex];
             //Get information for confirm window and callback
             const container = selectElement.closest("tr");          
-            const id = container.id;
+            const taskid = container.getAttribute("data-taskid");
             const optionName = container.querySelector("td").textContent;
             const optionStatus = selectedOption.textContent;
             //Confirm window
@@ -83,7 +61,7 @@ class TaskList extends HTMLElement {
 
             if(userResponse) { //Clicked OK
                 selectElement.value ="0";
-                callback(id, optionStatus);
+                callback(taskid, optionStatus);
             }
             else { //Cancelled
                 selectElement.value ="0";
@@ -93,7 +71,7 @@ class TaskList extends HTMLElement {
        });                     
   }
 
-    /**
+    /**API
      * Add callback to run on click on delete button of a task
      * @public
      * @param {function} callback
@@ -106,13 +84,13 @@ class TaskList extends HTMLElement {
                     const buttonElement = event.target;
                     //Find id and name of task for confirm window and callback
                     const container = buttonElement.closest("tr");          
-                    const id = container.id;
+                    const taskid = container.getAttribute("data-taskid");
                     const optionName = container.querySelector("td").textContent;
                     //Confirm window
                     const userRespone = confirm(`Delete task '${optionName}?`);
         
                     if(userRespone) { //Clicked OK
-                        callback(id);
+                        callback(taskid);
                     }
                     else { //Cancelled
                         return
@@ -121,7 +99,7 @@ class TaskList extends HTMLElement {
             });                    
     }
 
-    /**
+    /**API
      * Add task at top in list of tasks in the view
      * @public
      * @param {Object} task - Object representing a task
@@ -136,40 +114,40 @@ class TaskList extends HTMLElement {
          let table = this.#shadow.querySelector("table");
          if(table === null) {
             //Add new list element if not present
-            const newTable = tasktable.content.cloneNode(true);
+            const newTable = this.#tasktable.cloneNode(true);
             this.#shadow.querySelector("div").appendChild(newTable);
             table = this.#shadow.querySelector("table");         
          }
          //create row element
-         const newRow = this.taskrow.cloneNode(true);
+         const newRow = this.#taskrow.cloneNode(true);
 
          //add new task information to row element
-         newRow.querySelector("tr").id = `${task.id}`;
+         newRow.querySelector("tr").setAttribute("data-taskid", `${task.id}`);
          const rowinfo = newRow.querySelectorAll("td");
          rowinfo[0].textContent = task.title;
          rowinfo[1].textContent = task.status;
          table.insertBefore(newRow, table.firstChild)  
     }
 
-    /**
+    /**API
      * Update the status of a task in the view
      * @param {Object} task - Object with attributes {'id':taskId,'status':newStatus}
      */
     updateTask(task) {     
         //Get row element with matching id
-       const row = this.#shadow.querySelector(`tr[id='${task.id}']`); 
+        const row = this.#shadow.querySelector(`tr[data-taskid='${task.id}']`); 
        //Get status cell of row and update it
-             const cells = row.querySelectorAll("td");
-             cells[1].textContent = task.status;             
+        const cells = row.querySelectorAll("td");
+        cells[1].textContent = task.status;             
     }
 
-    /**
+    /**API
      * Remove a task from the view
      * @param {Integer} task - ID of task to remove
      */
     removeTask(id) {
         //Get row element with matching id
-        const row = this.#shadow.querySelector(`tr[id='${id}']`);
+        const row = this.#shadow.querySelector(`tr[data-taskid='${id}']`);
        if(row) { //Remove the row if found
         row.remove();
         console.log("Task removed from view");
@@ -187,7 +165,7 @@ class TaskList extends HTMLElement {
 
     }
 
-    /**
+    /**API
      * @public
      * @return {Number} - Number of tasks on display in view
      */
@@ -195,6 +173,53 @@ class TaskList extends HTMLElement {
     const rows = this.#shadow.querySelectorAll("tr:not(thead tr)");
     const number = rows.length;
     return number;   
+    }
+    
+    /**
+     * @private
+     * @returns main html template for component
+     */
+    #createTemplate() {
+        const template = document.createElement("template");
+        template.innerHTML = `
+        <link rel="stylesheet" type="text/css" href="${import.meta.url.match(/.*\//)[0]}/tasklist.css"/>
+
+        <div id="tasklist"></div>`;
+    return template;
+    }
+    
+    /**
+     * @private
+     * @returns task table template for component
+     */
+    #createTasktableTemplate() {
+        const tasktable = document.createElement("template");
+        tasktable.innerHTML = `
+        <table>
+            <thead><tr><th>Task</th><th>Status</th></tr></thead>
+            <tbody></tbody>
+        </table>`;
+    return tasktable;
+    }
+
+    /**
+     * @private
+     * @returns task row template for component
+     */
+    #createTaskrowTemplate() {
+        const taskrow = document.createElement("template");
+        taskrow.innerHTML = `
+            <tr>
+                <td></td>
+                <td></td>
+                <td>
+                    <select>
+                        <option value="0" selected>&lt;Modify&gt;</option>
+                    </select>
+                </td>
+                <td><button type="button">Remove</button></td>
+            </tr>`;
+    return taskrow;
     }
 }
 customElements.define('task-list', TaskList);
