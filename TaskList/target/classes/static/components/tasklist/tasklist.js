@@ -59,7 +59,7 @@ class TaskList extends HTMLElement {
             //Confirm window
             const userResponse = confirm(`Set '${optionName}' to ${optionStatus}?`)
 
-            if(userResponse) { //Clicked OK
+            if(userResponse === true) { //Clicked OK
                 selectElement.value ="0";
                 callback(taskid, optionStatus);
             }
@@ -89,7 +89,7 @@ class TaskList extends HTMLElement {
                     //Confirm window
                     const userRespone = confirm(`Delete task '${optionName}?`);
         
-                    if(userRespone) { //Clicked OK
+                    if(userRespone === true) { //Clicked OK
                         callback(taskid);
                     }
                     else { //Cancelled
@@ -106,9 +106,9 @@ class TaskList extends HTMLElement {
      */
     showTask(task) {
         
-        //Check if task already present
+        //Check if task with same id already present
         const present = this.#shadow.querySelector(`tr[id="${task.id}"]`);
-        if(present) {return};
+        if(!(present === null)) {return};
 
          //Check if table elemnt present
          let table = this.#shadow.querySelector("table");
@@ -120,13 +120,14 @@ class TaskList extends HTMLElement {
          }
          //create row element
          const newRow = this.#taskrow.cloneNode(true);
+         const tbody = table.querySelector("tbody");
 
          //add new task information to row element
          newRow.querySelector("tr").setAttribute("data-taskid", `${task.id}`);
          const rowinfo = newRow.querySelectorAll("td");
          rowinfo[0].textContent = task.title;
          rowinfo[1].textContent = task.status;
-         table.insertBefore(newRow, table.firstChild)  
+         tbody.insertBefore(newRow, tbody.firstChild)  
     }
 
     /**API
@@ -148,7 +149,7 @@ class TaskList extends HTMLElement {
     removeTask(id) {
         //Get row element with matching id
         const row = this.#shadow.querySelector(`tr[data-taskid='${id}']`);
-       if(row) { //Remove the row if found
+       if(!(row === undefined)) { //Remove the row if found
         row.remove();
         console.log("Task removed from view");
        }
@@ -169,9 +170,12 @@ class TaskList extends HTMLElement {
      * @public
      * @return {Number} - Number of tasks on display in view
      */
-    getNumtasks() {   
-    const rows = this.#shadow.querySelectorAll("tr:not(thead tr)");
-    const number = rows.length;
+    getNumtasks() {
+    const table = this.#shadow.querySelector("table");
+    if(table === null) {
+        return 0;
+    } 
+    const number = table.tBodies[0].rows.length;
     return number;   
     }
     

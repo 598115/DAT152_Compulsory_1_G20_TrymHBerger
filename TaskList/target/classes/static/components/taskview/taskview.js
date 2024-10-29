@@ -72,7 +72,7 @@ class TaskView extends HTMLElement {
                }
                else {
                  //if tasks found and response true, show tasks in view
-                  if(data.responseStatus) {
+                  if(data.responseStatus === true) {
                         for (let t of taskArray) {
                              this.#taskList.showTask(t);
                         } 
@@ -106,7 +106,7 @@ class TaskView extends HTMLElement {
                 const response = await fetch(`${this.#baseurl}/task`, config);
                 const data = await response.json();
                  //If true server response, update view with new task
-                if(data.responseStatus) {
+                if(data.responseStatus === true) {
                     this.#taskList.showTask(data.task);
                     this.#refreshMessageElement();
                 }
@@ -149,7 +149,7 @@ class TaskView extends HTMLElement {
            const response = await fetch(`${this.#baseurl}/task/${id}`, config);
            const data = await response.json();
            //if server response ok update the view
-           if(data.responseStatus) {
+           if(data.responseStatus === true) {
             const task = await this.#getTask(id);
             this.#taskList.updateTask(task);
            }
